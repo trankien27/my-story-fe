@@ -177,6 +177,11 @@ function AppContent() {
   const [dataVersion, setDataVersion] = useState(0);
   const [alertInfo, setAlertInfo] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (apiService.hasSession()) {

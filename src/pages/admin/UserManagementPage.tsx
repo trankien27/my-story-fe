@@ -72,6 +72,7 @@ export default function UserManagementPage({ onNavigate }: UserManagementPagePro
                         <img
                           src={u.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
                           alt={u.fullName}
+                          referrerPolicy="no-referrer"
                           className="h-10 w-10 rounded-full border border-slate-200 object-cover shrink-0"
                         />
                         <div>

@@ -1,4 +1,4 @@
-import { Category, Chapter, Story, User } from "../types";
+import { Category, Chapter, Story, StoryChapter, User } from "../types";
 
 interface PagedResponse<T> {
   items: T[];
@@ -32,6 +32,13 @@ interface ApiStory {
   totalViews?: number;
   chapterCount?: number;
   categories: ApiCategory[];
+  chapters?: ApiStoryChapter[];
+}
+
+interface ApiStoryChapter {
+  id: number;
+  chapterNumber: number;
+  view: number;
 }
 
 interface ApiChapter {
@@ -75,6 +82,12 @@ const mapCategory = (category: ApiCategory): Category => ({
   slug: slugify(category.name),
 });
 
+const mapStoryChapter = (chapter: ApiStoryChapter): StoryChapter => ({
+  id: String(chapter.id),
+  chapterNumber: chapter.chapterNumber,
+  view: chapter.view,
+});
+
 const mapStory = (story: ApiStory, previous?: Story): Story => ({
   id: String(story.id),
   title: story.name,
@@ -87,6 +100,7 @@ const mapStory = (story: ApiStory, previous?: Story): Story => ({
   rating: previous?.rating,
   likes: previous?.likes,
   chapterCount: story.chapterCount ?? previous?.chapterCount,
+  chapters: story.chapters?.map(mapStoryChapter) ?? previous?.chapters,
   categories: story.categories.map(mapCategory),
   createdAt: previous?.createdAt || new Date().toISOString(),
   updatedAt: new Date().toISOString(),

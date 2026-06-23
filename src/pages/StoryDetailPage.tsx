@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BookOpen, Star, Eye, Calendar, Sparkles, SortAsc, SortDesc, Heart, MessageSquare, ChevronRight, User as UserIcon } from "lucide-react";
-import { Story, Chapter, ActivePage } from "../types";
+import { Story, StoryChapter, ActivePage } from "../types";
 import { dbService } from "../services/dbService";
 import { apiService } from "../services/apiService";
 
@@ -84,22 +84,15 @@ export default function StoryDetailPage({ slug, onNavigate }: StoryDetailPagePro
   }
 
   const savedChapters = dbService.getChapters(story.id);
-  const savedChapterMap = new Map(savedChapters.map((chapter) => [chapter.chapterNumber, chapter]));
-  const chapterCount = story.chapterCount ?? savedChapters.length;
-  const chapters: Chapter[] = Array.from({ length: chapterCount }, (_, index) => {
-    const chapterNumber = index + 1;
-    return savedChapterMap.get(chapterNumber) || {
-      id: `pending-${story.id}-${chapterNumber}`,
-      storyId: story.id,
-      chapterNumber,
-      title: `Chương ${chapterNumber}`,
-      slug: `chuong-${chapterNumber}`,
-      images: [],
-      createdAt: story.createdAt,
-      updatedAt: story.updatedAt,
-    };
-  });
-  const orderedChapters = ascendingChapters ? chapters : [...chapters].reverse();
+  const chapters: StoryChapter[] = story.chapters ?? savedChapters.map((chapter) => ({
+    id: chapter.id,
+    chapterNumber: chapter.chapterNumber,
+    view: 0,
+  }));
+  const ascendingChapterList = [...chapters].sort((a, b) => a.chapterNumber - b.chapterNumber);
+  const orderedChapters = ascendingChapters ? ascendingChapterList : [...ascendingChapterList].reverse();
+  const firstChapter = ascendingChapterList[0];
+  const latestChapter = ascendingChapterList[ascendingChapterList.length - 1];
 
   const handleToggleFavorite = () => {
     const isAdded = dbService.toggleFavorite(story.id);
@@ -219,7 +212,7 @@ export default function StoryDetailPage({ slug, onNavigate }: StoryDetailPagePro
               {chapters.length > 0 ? (
                 <>
                   <button
-                    onClick={() => onNavigate({ type: "reader", storySlug: story.slug, chapterNumber: 1 })}
+                    onClick={() => onNavigate({ type: "reader", storySlug: story.slug, chapterNumber: firstChapter.chapterNumber })}
                     className="h-12 px-6 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
                   >
                     <BookOpen className="h-4 w-4" />
@@ -227,10 +220,10 @@ export default function StoryDetailPage({ slug, onNavigate }: StoryDetailPagePro
                   </button>
 
                   <button
-                    onClick={() => onNavigate({ type: "reader", storySlug: story.slug, chapterNumber: chapters.length })}
+                    onClick={() => onNavigate({ type: "reader", storySlug: story.slug, chapterNumber: latestChapter.chapterNumber })}
                     className="h-12 px-5 bg-[#7C3AED]/10 hover:bg-[#7C3AED]/15 text-[#7C3AED] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
                   >
-                    Mới nhất C. {chapters.length}
+                    Mới nhất C. {latestChapter.chapterNumber}
                   </button>
                 </>
               ) : (
@@ -302,11 +295,11 @@ export default function StoryDetailPage({ slug, onNavigate }: StoryDetailPagePro
                       <h4 className="text-xs font-bold text-slate-800 group-hover:text-[#7C3AED] transition-colors">
                         Chương {chap.chapterNumber}
                       </h4>
-                      <p className="text-[10px] text-slate-400 truncate max-w-[200px] mt-0.5">{chap.title}</p>
                     </div>
                     
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {new Date(chap.createdAt).toLocaleDateString("vi-VN")}
+                    <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      {chap.view.toLocaleString("vi-VN")}
                     </span>
                   </div>
                 ))}

@@ -51,6 +51,7 @@ export default function ProfilePage({ currentUser, onNavigate, onUpdateSuccess }
             <img
               src={avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
               alt={currentUser.fullName}
+              referrerPolicy="no-referrer"
               className="h-24 w-24 rounded-full border-2 border-[#7C3AED]/20 object-cover"
             />
             

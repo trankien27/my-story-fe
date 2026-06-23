@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { AlertTriangle, BookOpen, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpToLine, BookOpen, RefreshCw } from "lucide-react";
 import { ActivePage } from "../../../types";
 import { dbService } from "../../../services/dbService";
 import { useChapterReader } from "../hooks/useChapterReader";
@@ -37,6 +37,12 @@ export default function ChapterReaderPage({ storySlug, chapterNumber, onNavigate
   const goToChapter = useCallback((number: number) => {
     onNavigate({ type: "reader", storySlug, chapterNumber: number });
   }, [onNavigate, storySlug]);
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+  const scrollToBottom = useCallback(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+  }, []);
 
   if (!story) {
     return (
@@ -123,6 +129,27 @@ export default function ChapterReaderPage({ storySlug, chapterNumber, onNavigate
         onNext={next}
         onBack={goBack}
       />
+
+      <div className="fixed bottom-5 right-4 z-40 flex flex-col gap-2 sm:right-6">
+        <button
+          type="button"
+          onClick={scrollToTop}
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-zinc-900/90 text-zinc-200 shadow-xl backdrop-blur transition hover:bg-violet-600 hover:text-white"
+          title="Lên đầu chương"
+          aria-label="Lên đầu chương"
+        >
+          <ArrowUpToLine className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-zinc-900/90 text-zinc-200 shadow-xl backdrop-blur transition hover:bg-violet-600 hover:text-white"
+          title="Xuống cuối chương"
+          aria-label="Xuống cuối chương"
+        >
+          <ArrowDownToLine className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 }

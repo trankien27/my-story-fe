@@ -58,6 +58,7 @@ export function ChapterImage({ page, isFirst, onNear, onVisible }: ChapterImageP
               src={page.placeholderUrl}
               alt=""
               aria-hidden="true"
+              referrerPolicy="no-referrer"
               className="h-full w-full scale-105 object-cover opacity-40 blur-xl"
             />
           ) : (
@@ -86,6 +87,7 @@ export function ChapterImage({ page, isFirst, onNear, onVisible }: ChapterImageP
         key={retryKey}
         src={page.imageUrl}
         alt={`Trang ${page.index + 1}`}
+        referrerPolicy="no-referrer"
         width={page.width}
         height={page.height}
         loading={isFirst ? "eager" : "lazy"}

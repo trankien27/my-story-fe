@@ -18,6 +18,12 @@ export interface Chapter {
   updatedAt: string;
 }
 
+export interface StoryChapter {
+  id: string;
+  chapterNumber: number;
+  view: number;
+}
+
 export interface Story {
   id: string;
   title: string;
@@ -30,6 +36,7 @@ export interface Story {
   rating?: number;
   likes?: number;
   chapterCount?: number;
+  chapters?: StoryChapter[];
   categories: Category[];
   createdAt: string;
   updatedAt: string;

@@ -126,6 +126,7 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
                     <img
                       src={user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
                       alt={user.fullName}
+                      referrerPolicy="no-referrer"
                       className="h-9 w-9 rounded-full object-cover border border-slate-200"
                     />
                     <div>

@@ -165,6 +165,7 @@ export default function Header({ currentUser, onLogout, activePage, onNavigate }
                 <img
                   src={currentUser.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
                   alt={currentUser.fullName}
+                  referrerPolicy="no-referrer"
                   className="h-8 w-8 rounded-full border border-slate-200 object-cover"
                 />
                 <span className="hidden lg:block text-sm font-semibold text-[#0F172A] max-w-[120px] truncate">
