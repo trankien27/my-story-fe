@@ -1,0 +1,6 @@
+{
+  "name": "VnTruyen",
+  "description": "Nền tảng đọc truyện tranh và tiểu thuyết trực tuyến tối giản, hiện đại và thân thiện với thiết bị di động.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
