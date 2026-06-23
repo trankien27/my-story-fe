@@ -15,7 +15,7 @@ export default function StoryCard({ story, onNavigate }: StoryCardProps) {
 
   return (
     <div
-      onClick={() => onNavigate({ type: "story-detail", slug: story.slug })}
+      onClick={() => onNavigate({ type: "story-detail", slug: story.id })}
       className="group cursor-pointer flex flex-col w-full text-left"
     >
       {/* Cover Image Container */}

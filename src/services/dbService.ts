@@ -400,6 +400,9 @@ export const dbService = {
   getStoryBySlug(slug: string): Story | undefined {
     return this.getStories().find((s) => s.slug === slug);
   },
+  getStoryById(id: string): Story | undefined {
+    return this.getStories().find((story) => story.id === id);
+  },
   cacheStory(story: Story): void {
     const stories = this.getStories();
     const index = stories.findIndex((item) => item.id === story.id);

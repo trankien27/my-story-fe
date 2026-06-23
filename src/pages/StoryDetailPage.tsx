@@ -13,7 +13,7 @@ export default function StoryDetailPage({ slug, onNavigate }: StoryDetailPagePro
   const [isFavorite, setIsFavorite] = useState(false);
   const [ascendingChapters, setAscendingChapters] = useState(true);
   const [userComment, setUserComment] = useState("");
-  const cachedStory = dbService.getStoryBySlug(slug);
+  const cachedStory = dbService.getStoryById(slug) || dbService.getStoryBySlug(slug);
   const [story, setStory] = useState<Story | undefined>(cachedStory);
   const [isLoadingDetail, setIsLoadingDetail] = useState(true);
   const [detailError, setDetailError] = useState("");
@@ -25,7 +25,8 @@ export default function StoryDetailPage({ slug, onNavigate }: StoryDetailPagePro
 
   useEffect(() => {
     let active = true;
-    const storyId = cachedStory?.id || (/^\d+$/.test(slug) ? slug : "");
+    const storyIdFromSlug = slug.match(/(?:^|-)(\d+)$/)?.[1] || "";
+    const storyId = cachedStory?.id || storyIdFromSlug;
     if (!storyId) {
       setIsLoadingDetail(false);
       return () => { active = false; };
