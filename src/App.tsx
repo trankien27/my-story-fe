@@ -112,10 +112,11 @@ export function useActivePageFromRoute(): ActivePage {
   const readerRegex = /^\/stories\/([^/]+)\/chapters\/([^/]+)\/?$/;
   const readerMatch = pathname.match(readerRegex);
   if (readerMatch) {
+    const parsedChapterNumber = Number.parseInt(readerMatch[2], 10);
     return {
       type: "reader",
       storySlug: readerMatch[1],
-      chapterNumber: parseInt(readerMatch[2], 10) || 1,
+      chapterNumber: Number.isNaN(parsedChapterNumber) ? 1 : parsedChapterNumber,
     };
   }
 
@@ -160,7 +161,8 @@ function StoryDetailPageRouteWrapper({ onNavigate }: { onNavigate: (page: Active
 
 function ReaderPageRouteWrapper({ onNavigate }: { onNavigate: (page: ActivePage) => void }) {
   const { storySlug, chapterNumber } = useParams<{ storySlug: string; chapterNumber: string }>();
-  const num = parseInt(chapterNumber || "1", 10) || 1;
+  const parsedChapterNumber = Number.parseInt(chapterNumber || "", 10);
+  const num = Number.isNaN(parsedChapterNumber) ? 1 : parsedChapterNumber;
   return (
     <div key={`${storySlug}-${num}`}>
       <ChapterReaderPage
