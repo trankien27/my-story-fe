@@ -29,8 +29,14 @@ interface ApiStory {
   id: number;
   name: string;
   thumbnailUrl: string;
+  author?: string | null;
+  status?: number | string | null;
+  statusName?: string | null;
   totalViews?: number;
   chapterCount?: number;
+  isFav?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   categories: ApiCategory[];
   chapters?: ApiStoryChapter[];
 }
@@ -47,6 +53,80 @@ interface ApiChapter {
   chapterNumber: number;
   view: number;
   imageUrls: string[];
+}
+
+interface UserLibraryStoryResponse {
+  storyId: number;
+  name: string;
+  thumbnailUrl: string;
+  author?: string | null;
+  status?: number | string | null;
+  statusName?: string | null;
+  chapterCount?: number;
+  isFav?: boolean;
+  categories: ApiCategory[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ReadingProgress {
+  storyId: string;
+  storyName: string;
+  thumbnailUrl: string;
+  status: Story["status"];
+  statusName: string;
+  chapterCount: number;
+  chapterId: string;
+  chapterNumber: number;
+  categories: Category[];
+  updatedAt: string;
+}
+
+export interface Comment {
+  id: string;
+  storyId: string;
+  userId: string;
+  userFullName: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  replies: Comment[];
+}
+
+export interface CommentPage {
+  items: Comment[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+interface ReadingProgressResponse {
+  storyId: number;
+  storyName: string;
+  thumbnailUrl: string;
+  status: number | string;
+  statusName: string;
+  chapterCount: number;
+  chapterId: number;
+  chapterNumber: number;
+  categories: ApiCategory[];
+  updatedAt: string;
+}
+
+interface CommentResponse {
+  id: number;
+  storyId: number;
+  userId: string;
+  userFullName: string;
+  content: string;
+  parentId: number | null;
+  createdAt: string;
+  updatedAt: string | null;
+  replies: CommentResponse[];
 }
 
 interface AuthResponse {
@@ -88,22 +168,79 @@ const mapStoryChapter = (chapter: ApiStoryChapter): StoryChapter => ({
   view: chapter.view,
 });
 
+const mapStatus = (status?: number | string | null): Story["status"] => {
+  if (typeof status === "number") {
+    if (status === 2) return "completed";
+    if (status === 3) return "paused";
+    return "ongoing";
+  }
+  const normalized = String(status || "").toLowerCase();
+  if (normalized.includes("complete") || normalized.includes("hoan")) return "completed";
+  if (normalized.includes("pause") || normalized.includes("tam")) return "paused";
+  return "ongoing";
+};
+
 const mapStory = (story: ApiStory, previous?: Story): Story => ({
   id: String(story.id),
   title: story.name,
   slug: previous?.slug || `${slugify(story.name)}-${story.id}`,
   coverUrl: story.thumbnailUrl,
   description: previous?.description || "Thông tin giới thiệu đang được cập nhật.",
-  author: previous?.author || "Đang cập nhật",
-  status: previous?.status || "ongoing",
+  author: story.author || previous?.author || "Đang cập nhật",
+  status: mapStatus(story.status ?? previous?.status),
   views: story.totalViews ?? previous?.views ?? 0,
   rating: previous?.rating,
   likes: previous?.likes,
+  isFav: story.isFav ?? previous?.isFav,
   chapterCount: story.chapterCount ?? previous?.chapterCount,
   chapters: story.chapters?.map(mapStoryChapter) ?? previous?.chapters,
   categories: story.categories.map(mapCategory),
-  createdAt: previous?.createdAt || new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  createdAt: story.createdAt || previous?.createdAt || new Date().toISOString(),
+  updatedAt: story.updatedAt || new Date().toISOString(),
+});
+
+const mapUserLibraryStory = (story: UserLibraryStoryResponse, previous?: Story): Story => ({
+  id: String(story.storyId),
+  title: story.name,
+  slug: previous?.slug || `${slugify(story.name)}-${story.storyId}`,
+  coverUrl: story.thumbnailUrl,
+  description: previous?.description || "Thông tin giới thiệu đang được cập nhật.",
+  author: story.author || previous?.author || "Đang cập nhật",
+  status: mapStatus(story.status),
+  views: previous?.views ?? 0,
+  rating: previous?.rating,
+  likes: previous?.likes,
+  isFav: story.isFav ?? true,
+  chapterCount: story.chapterCount,
+  chapters: previous?.chapters,
+  categories: story.categories.map(mapCategory),
+  createdAt: story.createdAt || previous?.createdAt || new Date().toISOString(),
+  updatedAt: story.updatedAt || previous?.updatedAt || new Date().toISOString(),
+});
+
+const mapReadingProgress = (progress: ReadingProgressResponse): ReadingProgress => ({
+  storyId: String(progress.storyId),
+  storyName: progress.storyName,
+  thumbnailUrl: progress.thumbnailUrl,
+  status: mapStatus(progress.status),
+  statusName: progress.statusName,
+  chapterCount: progress.chapterCount,
+  chapterId: String(progress.chapterId),
+  chapterNumber: progress.chapterNumber,
+  categories: progress.categories.map(mapCategory),
+  updatedAt: progress.updatedAt,
+});
+
+const mapComment = (comment: CommentResponse): Comment => ({
+  id: String(comment.id),
+  storyId: String(comment.storyId),
+  userId: comment.userId,
+  userFullName: comment.userFullName,
+  content: comment.content,
+  parentId: comment.parentId == null ? null : String(comment.parentId),
+  createdAt: comment.createdAt,
+  updatedAt: comment.updatedAt,
+  replies: comment.replies?.map(mapComment) ?? [],
 });
 
 const mapChapter = (chapter: ApiChapter): Chapter => ({
@@ -179,7 +316,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retry 
     response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
-    throw new Error(`Không thể kết nối API tại ${API_BASE_URL}. Hãy kiểm tra backend đang chạy.`);
+    throw new Error("Không thể kết nối máy chủ. Vui lòng thử lại sau.");
   }
 
   if (response.status === 401 && retry && !path.startsWith("/auth/")) {
@@ -316,6 +453,61 @@ export const apiService = {
 
   addChapterView(chapterId: string): Promise<void> {
     return apiRequest<void>(`/chapter/${chapterId}/view`, { method: "POST" });
+  },
+
+  async getFavorites(previousStories: Story[] = []): Promise<Story[]> {
+    const stories = await apiRequest<UserLibraryStoryResponse[]>("/userlibrary/favorites");
+    return stories.map((story) => mapUserLibraryStory(story, previousStories.find((item) => item.id === String(story.storyId))));
+  },
+
+  addFavorite(storyId: string): Promise<void> {
+    return apiRequest<void>(`/userlibrary/favorites/${storyId}`, { method: "POST" });
+  },
+
+  removeFavorite(storyId: string): Promise<void> {
+    return apiRequest<void>(`/userlibrary/favorites/${storyId}`, { method: "DELETE" });
+  },
+
+  async getReadingProgress(): Promise<ReadingProgress[]> {
+    const progress = await apiRequest<ReadingProgressResponse[]>("/userlibrary/progress");
+    return progress.map(mapReadingProgress);
+  },
+
+  async getStoryReadingProgress(storyId: string): Promise<ReadingProgress | null> {
+    const progress = await apiRequest<ReadingProgressResponse | null>(`/userlibrary/progress/${storyId}`);
+    return progress ? mapReadingProgress(progress) : null;
+  },
+
+  saveReadingProgress(storyId: string, chapterId: string): Promise<void> {
+    return apiRequest<void>(`/userlibrary/progress/${storyId}/chapter/${chapterId}`, { method: "POST" });
+  },
+
+  async getComments(storyId: string, page = 1, pageSize = 10): Promise<CommentPage> {
+    const result = await apiRequest<PagedResponse<CommentResponse>>(
+      `/story/${storyId}/comments?page=${page}&pageSize=${pageSize}`,
+    );
+    return {
+      ...result,
+      items: result.items.map(mapComment),
+    };
+  },
+
+  addComment(storyId: string, content: string, parentId: string | null = null): Promise<Comment> {
+    return apiRequest<CommentResponse>(`/story/${storyId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ content, parentId: parentId == null ? null : Number(parentId) }),
+    }).then(mapComment);
+  },
+
+  updateComment(storyId: string, commentId: string, content: string): Promise<Comment> {
+    return apiRequest<CommentResponse>(`/story/${storyId}/comments/${commentId}`, {
+      method: "PUT",
+      body: JSON.stringify({ content }),
+    }).then(mapComment);
+  },
+
+  deleteComment(storyId: string, commentId: string): Promise<void> {
+    return apiRequest<void>(`/story/${storyId}/comments/${commentId}`, { method: "DELETE" });
   },
 
   async createCategory(name: string): Promise<Category> {

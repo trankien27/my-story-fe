@@ -10,11 +10,12 @@ import { ChapterToolbar, ReaderTheme, ReaderWidth } from "../components/ChapterT
 
 interface ChapterReaderPageProps {
   storySlug: string;
-  chapterNumber: number;
+  chapterNumber?: number;
+  chapterId?: string;
   onNavigate: (page: ActivePage) => void;
 }
 
-export default function ChapterReaderPage({ storySlug, chapterNumber, onNavigate }: ChapterReaderPageProps) {
+export default function ChapterReaderPage({ storySlug, chapterNumber, chapterId, onNavigate }: ChapterReaderPageProps) {
   const cachedStory = dbService.getStoryBySlug(storySlug) || dbService.getStoryById(storySlug);
   const [story, setStory] = useState(cachedStory);
   const [areControlsVisible, setAreControlsVisible] = useState(true);
@@ -73,7 +74,8 @@ export default function ChapterReaderPage({ storySlug, chapterNumber, onNavigate
     return () => { active = false; };
   }, [cachedStory?.id, storySlug]);
 
-  const fallbackChapterCount = story?.chapterCount || chapterNumber;
+  const fallbackChapterNumber = chapterNumber || 1;
+  const fallbackChapterCount = story?.chapterCount || fallbackChapterNumber;
   const chapterNumbers: number[] = story?.chapters
     ? Array.from(new Set<number>(story.chapters.map((item) => item.chapterNumber))).sort((a, b) => a - b)
     : Array.from({ length: fallbackChapterCount }, (_, index) => index + 1);
@@ -90,6 +92,7 @@ export default function ChapterReaderPage({ storySlug, chapterNumber, onNavigate
   } = useChapterReader({
     storyId: story?.id || "",
     chapterNumber,
+    chapterId,
     chapterCount: lastChapterNumber,
     storyTitle: story?.title,
   });
@@ -131,7 +134,7 @@ export default function ChapterReaderPage({ storySlug, chapterNumber, onNavigate
       <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-white">
         <div className="text-center">
           <div className="mx-auto h-11 w-11 animate-spin rounded-full border-4 border-zinc-800 border-t-violet-500" />
-          <p className="mt-4 text-xs font-semibold text-zinc-400">Đang tải chương {chapterNumber}...</p>
+          <p className="mt-4 text-xs font-semibold text-zinc-400">Đang tải chương...</p>
         </div>
       </div>
     );

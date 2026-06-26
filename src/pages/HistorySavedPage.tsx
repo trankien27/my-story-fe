@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { Clock, Bookmark, Play, Trash2, ArrowRight, Eye, Star } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Clock, Heart, Trash2, ArrowRight } from "lucide-react";
 import { ActivePage } from "../types";
 import { dbService } from "../services/dbService";
+import { apiService, ReadingProgress } from "../services/apiService";
 
 interface HistorySavedPageProps {
   initialTab?: "history" | "saved";
@@ -11,9 +12,59 @@ interface HistorySavedPageProps {
 export default function HistorySavedPage({ initialTab = "history", onNavigate }: HistorySavedPageProps) {
   const [activeTab, setActiveTab] = useState<"history" | "saved">(initialTab);
   const [historyItems, setHistoryItems] = useState(dbService.getHistory());
-  const [savedItemIds, setSavedItemIds] = useState(dbService.getFavorites());
+  const [savedStories, setSavedStories] = useState(() => dbService.getFavorites()
+    .map((id) => dbService.getStoryById(id))
+    .filter((story): story is NonNullable<typeof story> => Boolean(story)));
+  const [remoteProgress, setRemoteProgress] = useState<ReadingProgress[]>([]);
+  const [libraryError, setLibraryError] = useState("");
 
   const stories = dbService.getStories();
+  const progressItems = useMemo(() => remoteProgress.map((item) => {
+    const cachedStory = stories.find((story) => story.id === item.storyId);
+    return {
+      progress: item,
+      story: cachedStory || {
+        id: item.storyId,
+        title: item.storyName,
+        slug: `${item.storyName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${item.storyId}`,
+        coverUrl: item.thumbnailUrl,
+        description: "Thông tin giới thiệu đang được cập nhật.",
+        author: "Đang cập nhật",
+        status: item.status,
+        views: 0,
+        chapterCount: item.chapterCount,
+        categories: item.categories,
+        createdAt: item.updatedAt,
+        updatedAt: item.updatedAt,
+      },
+    };
+  }), [remoteProgress, stories]);
+
+  useEffect(() => {
+    if (!apiService.hasSession()) {
+      if (initialTab === "saved") {
+        window.alert("Bạn cần đăng nhập để sử dụng tính năng này");
+        onNavigate({ type: "login" });
+      }
+      return;
+    }
+
+    let active = true;
+    setLibraryError("");
+    Promise.all([
+      apiService.getFavorites(stories),
+      apiService.getReadingProgress(),
+    ]).then(([favorites, progress]) => {
+      if (!active) return;
+      favorites.forEach((story) => dbService.cacheStory(story));
+      setSavedStories(favorites);
+      setRemoteProgress(progress);
+    }).catch(() => {
+      if (active) setLibraryError("Không thể tải dữ liệu mới.");
+    });
+
+    return () => { active = false; };
+  }, [initialTab, onNavigate]);
 
   const handleClearHistory = () => {
     if (confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử đọc truyện không?")) {
@@ -22,10 +73,22 @@ export default function HistorySavedPage({ initialTab = "history", onNavigate }:
     }
   };
 
-  const handleRemoveFavorite = (e: React.MouseEvent, storyId: string) => {
+  const handleRemoveFavorite = async (e: React.MouseEvent, storyId: string) => {
     e.stopPropagation();
-    dbService.toggleFavorite(storyId);
-    setSavedItemIds(dbService.getFavorites());
+    if (!apiService.hasSession()) {
+      window.alert("Bạn cần đăng nhập để sử dụng tính năng này");
+      onNavigate({ type: "login" });
+      return;
+    }
+
+    const previous = savedStories;
+    setSavedStories((items) => items.filter((story) => story.id !== storyId));
+    try {
+      await apiService.removeFavorite(storyId);
+    } catch (error) {
+      setSavedStories(previous);
+      window.alert(error instanceof Error ? error.message : "Không thể bỏ thích.");
+    }
   };
 
   return (
@@ -54,14 +117,19 @@ export default function HistorySavedPage({ initialTab = "history", onNavigate }:
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            <Bookmark className="h-4 w-4" />
-            Truyện Đã Theo Dõi
+            <Heart className="h-4 w-4" />
+            Truyện Đã Thích
           </button>
         </div>
 
         {/* Tab 1: Reading History list */}
         {activeTab === "history" && (
           <div className="space-y-4">
+            {libraryError && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700">
+                {libraryError} Đang hiển thị dữ liệu đã lưu trên thiết bị.
+              </div>
+            )}
             <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
               <div className="flex items-center gap-2.5">
                 <span className="w-1.5 h-6 bg-[#7C3AED] rounded-full inline-block"></span>
@@ -82,7 +150,45 @@ export default function HistorySavedPage({ initialTab = "history", onNavigate }:
               )}
             </div>
 
-            {historyItems.length > 0 ? (
+            {apiService.hasSession() && progressItems.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {progressItems.map(({ progress, story: s }) => (
+                  <div
+                    key={progress.storyId}
+                    onClick={() => onNavigate({ type: "story-detail", slug: s.slug })}
+                    className="cursor-pointer group bg-white border border-[#E2E8F0] rounded-2xl p-4 hover:border-[#7C3AED]/30 hover:shadow-md transition-all flex gap-4"
+                  >
+                    <img
+                      src={s.coverUrl}
+                      alt={s.title}
+                      referrerPolicy="no-referrer"
+                      className="h-20 w-16 object-cover rounded-lg shrink-0"
+                    />
+                    <div className="flex-1 flex flex-col justify-between py-0.5">
+                      <div>
+                        <h3 className="text-sm font-bold text-[#0F172A] group-hover:text-[#7C3AED] truncate transition-colors">
+                          {s.title}
+                        </h3>
+                        <p className="text-xs font-semibold text-[#7C3AED] mt-1">Đang đọc Chương {progress.chapterNumber}</p>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                        <span>Cập nhật: {new Date(progress.updatedAt).toLocaleTimeString("vi-VN", { hour: "numeric", minute: "numeric" })} {new Date(progress.updatedAt).toLocaleDateString("vi-VN")}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigate({ type: "reader", storySlug: s.slug, chapterId: progress.chapterId });
+                          }}
+                          className="text-xs text-[#7C3AED] hover:text-[#6D28D9] font-bold flex items-center gap-0.5"
+                        >
+                          Đọc tiếp
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : historyItems.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {historyItems.map((item, index) => {
                   const s = stories.find((x) => x.id === item.storyId);
@@ -141,34 +247,30 @@ export default function HistorySavedPage({ initialTab = "history", onNavigate }:
           </div>
         )}
 
-        {/* Tab 2: Bookmarks list */}
+        {/* Tab 2: Liked stories list */}
         {activeTab === "saved" && (
           <div className="space-y-4">
             <div className="flex items-center gap-2.5 border-b border-[#E2E8F0] pb-3">
               <span className="w-1.5 h-6 bg-[#7C3AED] rounded-full inline-block"></span>
               <div>
-                <h2 className="text-lg font-bold text-[#0F172A]">Bộ truyện đang theo dõi</h2>
-                <p className="text-[#64748B] text-xs font-semibold">Lưu trữ các tác phẩm yêu thích và cập nhật mới.</p>
+                <h2 className="text-lg font-bold text-[#0F172A]">Truyện đã thích</h2>
+                <p className="text-[#64748B] text-xs font-semibold">Những tác phẩm bạn đã bấm thích và muốn quay lại đọc.</p>
               </div>
             </div>
 
-            {savedItemIds.length > 0 ? (
+            {savedStories.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {savedItemIds.map((id) => {
-                  const s = stories.find((x) => x.id === id);
-                  if (!s) return null;
-
+                {savedStories.map((s) => {
                   return (
                     <div
                       key={s.id}
                       onClick={() => onNavigate({ type: "story-detail", slug: s.slug })}
                       className="group cursor-pointer bg-white border border-[#E2E8F0] rounded-2xl p-3 hover:border-[#7C3AED]/30 hover:shadow-md transition-all relative"
                     >
-                      {/* Trash action bookmark */}
                       <button
                         onClick={(e) => handleRemoveFavorite(e, s.id)}
                         className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/95 text-rose-500 shadow-sm border border-[#E2E8F0] hover:bg-rose-50 transition-colors"
-                        title="Bỏ theo dõi"
+                        title="Bỏ thích"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -193,9 +295,9 @@ export default function HistorySavedPage({ initialTab = "history", onNavigate }:
               </div>
             ) : (
               <div className="bg-white border border-[#E2E8F0] rounded-3xl p-12 text-center max-w-md mx-auto">
-                <Bookmark className="h-10 w-10 text-slate-350 mx-auto mb-3" />
-                <h3 className="text-sm font-bold text-slate-700">Chưa theo dõi truyện nào</h3>
-                <p className="text-xs text-slate-400 mt-1">Bấm vào biểu tượng 'Theo dõi' ở chi tiết truyện để không bỏ lỡ chương mới.</p>
+                <Heart className="h-10 w-10 text-slate-350 mx-auto mb-3" />
+                <h3 className="text-sm font-bold text-slate-700">Chưa thích truyện nào</h3>
+                <p className="text-xs text-slate-400 mt-1">Bấm vào biểu tượng trái tim ở truyện bạn thích để lưu vào danh sách này.</p>
                 <button
                   onClick={() => onNavigate({ type: "story-list" })}
                   className="mt-4 px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold rounded-xl transition-all"

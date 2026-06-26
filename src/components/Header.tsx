@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BookOpen, Search, LogIn, User as UserIcon, Settings, LogOut, Clock, Bookmark, Menu, X, Grid, ChevronDown } from "lucide-react";
+import { BookOpen, Search, LogIn, User as UserIcon, Settings, LogOut, Clock, Heart, Menu, X, Grid, ChevronDown } from "lucide-react";
 import { User, ActivePage } from "../types";
 import { dbService } from "../services/dbService";
 
@@ -202,8 +202,8 @@ export default function Header({ currentUser, onLogout, activePage, onNavigate }
                       }}
                       className="w-full flex items-center gap-2 text-left px-3 py-2 text-sm text-[#64748B] hover:text-[#0F172A] rounded-lg hover:bg-slate-100/50 transition-colors"
                     >
-                      <Bookmark className="h-4 w-4 text-[#64748B]" />
-                      Truyện Đã Lưu
+                      <Heart className="h-4 w-4 text-[#64748B]" />
+                      Truyện Đã Thích
                     </button>
 
                     <button

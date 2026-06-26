@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { User, Calendar, ShieldCheck, Mail, Save, Clock, Bookmark, HelpCircle } from "lucide-react";
+import { Calendar, Mail, Save, Clock, Heart } from "lucide-react";
 import { ActivePage, User as UserType } from "../types";
 import { dbService } from "../services/dbService";
 
@@ -38,7 +38,7 @@ export default function ProfilePage({ currentUser, onNavigate, onUpdateSuccess }
     }
   };
 
-  const savedCount = dbService.getFavorites().length;
+  const likedCount = dbService.getFavorites().length;
   const historyCount = dbService.getHistory().length;
 
   return (
@@ -78,9 +78,9 @@ export default function ProfilePage({ currentUser, onNavigate, onUpdateSuccess }
           {/* Reading Statistics */}
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="bg-slate-50 p-4 rounded-2xl border border-[#E2E8F0]">
-              <Bookmark className="h-5 w-5 text-[#7C3AED]" />
-              <p className="text-xs text-slate-400 mt-1">Đang theo dõi</p>
-              <p className="text-lg font-bold text-slate-800 mt-0.5">{savedCount} truyện</p>
+              <Heart className="h-5 w-5 text-[#7C3AED]" />
+              <p className="text-xs text-slate-400 mt-1">Truyện đã thích</p>
+              <p className="text-lg font-bold text-slate-800 mt-0.5">{likedCount} truyện</p>
             </div>
 
             <div className="bg-slate-50 p-4 rounded-2xl border border-[#E2E8F0]">

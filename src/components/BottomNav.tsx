@@ -1,4 +1,4 @@
-import { Home, Compass, Clock, Bookmark, User } from "lucide-react";
+import { Home, Compass, Clock, Heart, User } from "lucide-react";
 import { ActivePage, User as UserType } from "../types";
 
 interface BottomNavProps {
@@ -49,8 +49,8 @@ export default function BottomNav({ activePage, onNavigate, currentUser }: Botto
           activePage.type === "favorites" ? "text-[#7C3AED]" : "text-slate-400"
         }`}
       >
-        <Bookmark className="h-5 w-5" />
-        <span className="text-[10px] font-semibold mt-0.5">Đã lưu</span>
+        <Heart className="h-5 w-5" />
+        <span className="text-[10px] font-semibold mt-0.5">Đã thích</span>
       </button>
  
       <button

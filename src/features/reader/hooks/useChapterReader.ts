@@ -2,12 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { chapterApi } from "../api/chapterApi";
 import { ChapterDetail, ChapterReaderState, ReaderHistoryEntry } from "../types/chapter.types";
 import { useImagePreload } from "./useImagePreload";
+import { apiService } from "../../../services/apiService";
+import { dbService } from "../../../services/dbService";
 
 const HISTORY_KEY = "vntruyen_reader_history";
+const PROGRESS_LOGIN_PROMPT_KEY = "vntruyen_progress_login_prompt_shown";
 
 interface UseChapterReaderOptions {
   storyId: string;
-  chapterNumber: number;
+  chapterNumber?: number;
+  chapterId?: string;
   chapterCount?: number;
   storyTitle?: string;
 }
@@ -25,6 +29,7 @@ const saveHistory = (entry: ReaderHistoryEntry) => {
 export function useChapterReader({
   storyId,
   chapterNumber,
+  chapterId,
   chapterCount,
   storyTitle,
 }: UseChapterReaderOptions) {
@@ -50,20 +55,31 @@ export function useChapterReader({
     setState({ chapter: null, isLoading: true, error: null, progress: 0, currentPageIndex: 0 });
     window.scrollTo({ top: 0, behavior: "auto" });
 
-    if (!storyId) {
+    if (!storyId && !chapterId) {
       setState((current) => ({ ...current, isLoading: false, error: "Không xác định được ID truyện." }));
       return () => controller.abort();
     }
 
-    chapterApi
-      .getByStoryAndNumber(storyId, chapterNumber, storyTitle, controller.signal)
+    const request = chapterId
+      ? chapterApi.getById(chapterId, controller.signal)
+      : chapterApi.getByStoryAndNumber(storyId, chapterNumber || 1, storyTitle, controller.signal);
+
+    request
       .then((chapter) => {
+        const currentStoryId = chapter.storyId || storyId;
         saveHistory({
-          storyId,
+          storyId: currentStoryId,
           chapterId: chapter.id,
           pageIndex: chapter.pages[0]?.index ?? 0,
           updatedAt: new Date().toISOString(),
         });
+        dbService.addHistory(currentStoryId, chapter.chapterNumber);
+        if (apiService.hasSession()) {
+          apiService.saveReadingProgress(currentStoryId, chapter.id).catch(() => undefined);
+        } else if (!sessionStorage.getItem(PROGRESS_LOGIN_PROMPT_KEY)) {
+          sessionStorage.setItem(PROGRESS_LOGIN_PROMPT_KEY, "1");
+          window.alert("Bạn cần đăng nhập để sử dụng tính năng này");
+        }
         setState((current) => ({ ...current, chapter, isLoading: false }));
       })
       .catch((error: unknown) => {
@@ -76,7 +92,7 @@ export function useChapterReader({
       });
 
     return () => controller.abort();
-  }, [storyId, chapterNumber, storyTitle, retryVersion]);
+  }, [storyId, chapterNumber, chapterId, storyTitle, retryVersion]);
 
   useEffect(() => {
     const updateProgress = () => {

@@ -58,7 +58,7 @@ export default function StoryListPage({ initialSearch = "", initialCategorySlug 
       })
       .catch((error: Error) => {
         if (active) {
-          setApiError(error.message);
+          setApiError("Không thể tải dữ liệu mới.");
           setStoryPage(null);
         }
       })

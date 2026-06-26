@@ -54,6 +54,7 @@ export function getPathFromPage(page: ActivePage): string {
     case "story-detail":
       return `/stories/${page.slug}`;
     case "reader":
+      if (page.chapterId) return `/stories/${page.storySlug}/chapters/id/${page.chapterId}`;
       return `/stories/${page.storySlug}/chapters/${page.chapterNumber}`;
     case "login":
       return "/login";
@@ -105,6 +106,17 @@ export function useActivePageFromRoute(): ActivePage {
       categorySlug: searchParams.get("category") || undefined,
       statusFilter: searchParams.get("status") || undefined,
       search: searchParams.get("search") || undefined,
+    };
+  }
+
+  // check reader: /stories/:storySlug/chapters/id/:chapterId
+  const readerByIdRegex = /^\/stories\/([^/]+)\/chapters\/id\/([^/]+)\/?$/;
+  const readerByIdMatch = pathname.match(readerByIdRegex);
+  if (readerByIdMatch) {
+    return {
+      type: "reader",
+      storySlug: readerByIdMatch[1],
+      chapterId: readerByIdMatch[2],
     };
   }
 
@@ -160,14 +172,15 @@ function StoryDetailPageRouteWrapper({ onNavigate }: { onNavigate: (page: Active
 }
 
 function ReaderPageRouteWrapper({ onNavigate }: { onNavigate: (page: ActivePage) => void }) {
-  const { storySlug, chapterNumber } = useParams<{ storySlug: string; chapterNumber: string }>();
+  const { storySlug, chapterNumber, chapterId } = useParams<{ storySlug: string; chapterNumber: string; chapterId: string }>();
   const parsedChapterNumber = Number.parseInt(chapterNumber || "", 10);
-  const num = Number.isNaN(parsedChapterNumber) ? 1 : parsedChapterNumber;
+  const num = Number.isNaN(parsedChapterNumber) ? undefined : parsedChapterNumber;
   return (
-    <div key={`${storySlug}-${num}`}>
+    <div key={`${storySlug}-${chapterId || num}`}>
       <ChapterReaderPage
         storySlug={storySlug || ""}
         chapterNumber={num}
+        chapterId={chapterId}
         onNavigate={onNavigate}
       />
     </div>
@@ -176,7 +189,7 @@ function ReaderPageRouteWrapper({ onNavigate }: { onNavigate: (page: ActivePage)
 
 function AppContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [dataVersion, setDataVersion] = useState(0);
+  const [, setDataVersion] = useState(0);
   const [alertInfo, setAlertInfo] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -244,7 +257,7 @@ function AppContent() {
   };
 
   return (
-    <div key={dataVersion} className="min-h-screen flex flex-col bg-slate-50 text-slate-800 selection:bg-indigo-100 relative">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 selection:bg-indigo-100 relative">
       
       {/* Dynamic persistent alert box */}
       {alertInfo && (
@@ -262,6 +275,10 @@ function AppContent() {
       {isReaderView ? (
         <div id="reader-layout" className="flex-1">
           <Routes>
+            <Route
+              path="/stories/:storySlug/chapters/id/:chapterId"
+              element={<ReaderPageRouteWrapper onNavigate={handleNavigate} />}
+            />
             <Route
               path="/stories/:storySlug/chapters/:chapterNumber"
               element={<ReaderPageRouteWrapper onNavigate={handleNavigate} />}

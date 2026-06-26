@@ -35,6 +35,7 @@ export interface Story {
   views: number;
   rating?: number;
   likes?: number;
+  isFav?: boolean;
   chapterCount?: number;
   chapters?: StoryChapter[];
   categories: Category[];
@@ -61,7 +62,8 @@ export type ActivePage =
   | { type: "home" }
   | { type: "story-list"; categorySlug?: string; statusFilter?: string; search?: string }
   | { type: "story-detail"; slug: string }
-  | { type: "reader"; storySlug: string; chapterNumber: number }
+  | { type: "reader"; storySlug: string; chapterNumber: number; chapterId?: string }
+  | { type: "reader"; storySlug: string; chapterId: string; chapterNumber?: number }
   | { type: "login" }
   | { type: "register" }
   | { type: "profile" }
