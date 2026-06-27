@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Mail, Lock, LogIn } from "lucide-react";
 import { ActivePage } from "../types";
 import { dbService } from "../services/dbService";
@@ -14,7 +14,22 @@ export default function LoginPage({ onNavigate, onLoginSuccess }: LoginPageProps
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
+  const handleGoogleCredential = async (idToken: string) => {
+  setErrorMsg("");
+  setIsSubmitting(true);
+
+  try {
+    const user = await apiService.loginWithGoogle(idToken);
+    dbService.setCurrentUser(user);
+    onLoginSuccess();
+  } catch (e: any) {
+    setErrorMsg(e.message || "Đăng nhập Google thất bại!");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
@@ -33,7 +48,25 @@ export default function LoginPage({ onNavigate, onLoginSuccess }: LoginPageProps
       setIsSubmitting(false);
     }
   };
+useEffect(() => {
+  if (!googleButtonRef.current || !window.google) return;
 
+  window.google.accounts.id.initialize({
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    callback: async (response) => {
+      await handleGoogleCredential(response.credential);
+    },
+  });
+
+  window.google.accounts.id.renderButton(googleButtonRef.current, {
+    theme: "outline",
+    size: "large",
+    width: 320,
+    text: "continue_with",
+  });
+
+  window.google.accounts.id.prompt();
+}, []);
   return (
     <div id="login-page" className="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-3xl border border-slate-100 shadow-xl">
@@ -102,7 +135,17 @@ export default function LoginPage({ onNavigate, onLoginSuccess }: LoginPageProps
             {isSubmitting ? "Đang đăng nhập..." : "Đăng Nhập Ngay"}
           </button>
         </form>
+          <div className="pt-2">
+            <div className="flex items-center gap-3 my-4">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-[11px] font-bold text-slate-400 uppercase">Hoặc</span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
 
+            <div className="flex justify-center">
+              <div ref={googleButtonRef} />
+            </div>
+          </div>
         <div className="text-center pt-2">
           <p className="text-xs font-medium text-slate-500">
             Chưa có tài khoản độc giả?{" "}

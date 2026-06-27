@@ -529,4 +529,12 @@ export const apiService = {
   deleteStory(id: string): Promise<void> {
     return apiRequest<void>(`/story/${id}`, { method: "DELETE" });
   },
+  async loginWithGoogle(idToken: string): Promise<User> {
+  const auth = await apiRequest<AuthResponse>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+  saveAuth(auth);
+  return toUser(auth);
+},
 };
